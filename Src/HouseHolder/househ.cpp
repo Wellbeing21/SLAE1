@@ -384,3 +384,103 @@ std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01
     return (x0);
 }
 
+std::vector<double> Matr::TransposedMatrixMult (const std::vector<double> &a) const {
+    std::vector<double>result(a.size());
+    for (int k = 0; k < a.size(); k++) {
+        for(int i = 0; i < a.size(); i++) {
+            result[k] += vv[i * a.size() + k] * a[i];
+        }
+    }
+
+
+
+    return result;
+}
+
+std::vector<double> Matr::BCG ( const Matr &A,  const std::vector<double> &x0, const std::vector<double> &b,const double e) {
+    double q, th, res = 10, n = x0.size();
+    std::vector<double> ri2, xi = x0;
+    ri2 = A*x0;
+    for (int i = 0; i < n; i++) {
+        ri2[i] -=  b[i];
+    }
+    double it = 0;
+    //found r0
+    std::vector<double> rti2 = ri2, rti1 = ri2, ri1 = ri2, pi = ri2, pti = ri2;
+    while (fabs(res) > e) {
+        it++;
+        std::vector<double> Api = A*pi, Atpti = A.TransposedMatrixMult(pti);
+        q = scalarmult(rti1,ri1) / (scalarmult(rti1, A*pi));
+        for (int i = 0; i < n; i++) {
+            xi[i] = xi[i] - q * pi[i];
+        }
+        //i'm going to recalculate residual so i write it to ri2
+        ri2 = ri1;
+        rti2 = rti1;
+        for (int i = 0; i < n; i++) {
+            ri1[i] = ri1[i] - q * Api[i];
+            rti1[i] = rti1[i] - q * Atpti[i];
+        }
+        //found xi,ri,rti, now theta
+        th = scalarmult(rti1,ri1) / scalarmult(rti2,ri2);
+        // now computing pi, pti
+        for (int i = 0; i < n; i++) {
+            pi[i] = ri1[i] + th * pi[i];
+            pti[i] = rti1[i] + th * pti[i];
+        }
+        res = vecmod(ri1);
+
+
+
+    }
+    std::cout << it << " iterations \n";
+    return xi;
+}
+
+
+std::vector<double> Matr::CGS ( const Matr &A,  const std::vector<double> &x0, const std::vector<double> &b,const double e) {
+    double q, th, res = 10, n = x0.size();
+    std::vector<double> ris, xi = x0;
+    double it = 0;
+    while (fabs(res) > e) {
+        it = 0;
+        ris = A*xi;
+        for (int i = 0; i < n; i++) {
+            ris[i] -=  b[i];
+        }
+        //found r0
+        std::vector<double> h(n), w(n), pis = ris, rt0 = ris, ui = ris, rsiprev(n);
+        while (fabs(res) > e) {
+            it++;
+            if (it > 1) {
+                th = scalarmult(ris, ris) / scalarmult(rsiprev, rsiprev);
+                for (int i = 0; i < n; i++) {
+                    ui[i] = ris[i] + th * h[i];
+                    w[i] = q + th * pis[i];
+                    pis[i] = ui[i] + th * w[i];
+                }
+            }
+            w = A * pis;
+            if (scalarmult(ris,w) == 0) { q = 0; break;}
+            q = scalarmult(ris, ris) / scalarmult(pis, w);
+            for (int i = 0; i < n; i++) {
+                h[i] = ui[i] - q * w[i];
+                w[i] = ui[i] + h[i];
+            }
+            rsiprev = ris;
+            std::vector<double> Aw = A * w;
+            for (int i = 0; i < n; i++) {
+                ris[i] = ris[i] - q * Aw[i];
+                xi[i] = xi[i] - q * w[i];
+            }
+            res = vecmod(ris);
+            if (fabs(q) < 0.000005) { break;}
+
+
+
+        }
+    }
+    return xi;
+}
+
+

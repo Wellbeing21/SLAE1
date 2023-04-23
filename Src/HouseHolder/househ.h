@@ -28,8 +28,9 @@ public:
     std::vector<double>  operator* (const std::vector<double> &a) const;
     std::vector<double> SolverGaussReversed_forUpTriang(const Matr A, const std::vector<double> b);
     std::vector<double> GMRES ( const Matr &A,  const std::vector<double> &x01, const std::vector<double> &b,const double e,const int m1);
-
-
+    std::vector<double> TransposedMatrixMult (const std::vector<double> &a) const;
+    std::vector<double> CGS ( const Matr &A,  const std::vector<double> &x0, const std::vector<double> &b,const double e);
+    std::vector<double> BCG ( const Matr &A,  const std::vector<double> &x0, const std::vector<double> &b,const double e);
 
 };
 
