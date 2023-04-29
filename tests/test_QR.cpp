@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../Src/HouseHolder/househ.h"
+#include "../Src/HouseHolder/dense.h"
 
 TEST(QR, B) {
 

@@ -1,4 +1,4 @@
-#include "househ.h"
+#include "dense.h"
 
 /////////////////////
 double vecmod (const std::vector<double> &a) {
@@ -8,13 +8,7 @@ double vecmod (const std::vector<double> &a) {
     }
     return sqrt(s);
 }
-double scalarmult (const std::vector<double> &a1,const std::vector<double> &a2) {
-    double sum = 0;
-    for (int i = 0; i < a1.size(); i++) {
-        sum += a1[i] * a2[i];
-    }
-    return sum;
-}
+
 void out(std::vector<double> &a) {
     int n = ( a.size());
     std::cout << "vec:\n";
@@ -22,6 +16,14 @@ void out(std::vector<double> &a) {
         std::cout << a[i]<<"\n";
     }
     std::cout << "\n";
+}
+
+double operator* (const std::vector<double> &a, const std::vector<double> &b) {
+    double sum = 0;
+    for (int i = 0; i < a.size(); i++) {
+        sum += a[i] * b[i];
+    }
+    return sum;
 }
 /////////////////////
 
@@ -62,12 +64,12 @@ void out(std::vector<double> &a) {
         }
         std::cout << "\n";
     }
-    double Matr::operator()(int i, int j) const{
-        int n = sqrt(vv.size());
+    double Matr::operator()(const int &i,const int &j) const{
+        int n = std::sqrt(vv.size());
         return vv[i * n + j];
     }
 //with const if we don't need to change something
-    double Matr::operator()(int i, int j) {
+    double Matr::operator()(const int &i,const  int &j) {
         int n = sqrt(vv.size());
         return vv[i * n + j];
     }
@@ -263,7 +265,7 @@ std::vector<double>  Matr::operator* (const std::vector<double> &a) const {
 
 
 
-std::vector<double> Matr::SolverGaussReversed_forUpTriang(const Matr A, const std::vector<double> b) {
+std::vector<double> Matr::SolverGaussReversed_forUpTriang(const Matr &A, const std::vector<double> &b) {
     int n = b.size();
     std::vector<double> x(n);
     for (int i = n-1; i >= 0; i--) {
@@ -275,11 +277,12 @@ std::vector<double> Matr::SolverGaussReversed_forUpTriang(const Matr A, const st
     }
     return x;
 }///working
-std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01, const std::vector<double> &b,const double e,const int m1) {
+std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01, const std::vector<double> &b,const double &e,const int &m1) {
     int n = b.size();
     int it = 0;
     int jt = 0;
     double ri = 10;
+    std::vector<double> zi(m1);
     std::vector<double> x0 = x01;
     double m = m1 - 1;
     while (not (ri < e)) {
@@ -296,6 +299,7 @@ std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01
         }
         double modr = vecmod(r);
         double modr0 = modr;
+        zi[0] = modr0;
         for (int i = 0; i < n; i++) {
             r[i] = r[i] / modr;
         }
@@ -305,7 +309,7 @@ std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01
             vi[k] = A * vi[k - 1];
             //next
             for (int i = 0; i < k; i++) {
-                H[i * m + (k - 1)] = scalarmult(vi[k], vi[i]);
+                H[i * m + (k - 1)] = (vi[k]*vi[i]);
             }
             //filled all include i, but not delta i+1, i
             for (int i = 0; i < k; i++) {
@@ -352,9 +356,9 @@ std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01
         //filled hessinberg matrix, but i DONT THOUGHT OF LAST Symbol
 
         //vse gotovo, we need to do givens and then find solution
-        std::vector<double> zi(m + 1);
-        zi[0] = modr0;
+
         it =0;
+
         for (int i = 0; i < m; i++) {
             double a = zi[i] * Givens[it] + zi[i + 1] * Givens[it + 1];
             double b = -zi[i] * Givens[it + 1] + zi[i + 1] * Givens[it];
@@ -378,7 +382,6 @@ std::vector<double> Matr::GMRES ( const Matr &A,  const std::vector<double> &x01
             }
         }
         jt++;
-        if (jt > 10000) { break;}
     }
 
     return (x0);
@@ -410,7 +413,7 @@ std::vector<double> Matr::BCG ( const Matr &A,  const std::vector<double> &x0, c
     while (fabs(res) > e) {
         it++;
         std::vector<double> Api = A*pi, Atpti = A.TransposedMatrixMult(pti);
-        q = scalarmult(rti1,ri1) / (scalarmult(rti1, A*pi));
+        q = (rti1*ri1) / (rti1*( A*pi));
         for (int i = 0; i < n; i++) {
             xi[i] = xi[i] - q * pi[i];
         }
@@ -422,7 +425,7 @@ std::vector<double> Matr::BCG ( const Matr &A,  const std::vector<double> &x0, c
             rti1[i] = rti1[i] - q * Atpti[i];
         }
         //found xi,ri,rti, now theta
-        th = scalarmult(rti1,ri1) / scalarmult(rti2,ri2);
+        th = (rti1*ri1) / (rti2*ri2);
         // now computing pi, pti
         for (int i = 0; i < n; i++) {
             pi[i] = ri1[i] + th * pi[i];
@@ -453,7 +456,7 @@ std::vector<double> Matr::CGS ( const Matr &A,  const std::vector<double> &x0, c
         while (fabs(res) > e) {
             it++;
             if (it > 1) {
-                th = scalarmult(ris, ris) / scalarmult(rsiprev, rsiprev);
+                th = (ris*ris) / (rsiprev*rsiprev);
                 for (int i = 0; i < n; i++) {
                     ui[i] = ris[i] + th * h[i];
                     w[i] = q + th * pis[i];
@@ -461,8 +464,8 @@ std::vector<double> Matr::CGS ( const Matr &A,  const std::vector<double> &x0, c
                 }
             }
             w = A * pis;
-            if (scalarmult(ris,w) == 0) { q = 0; break;}
-            q = scalarmult(ris, ris) / scalarmult(pis, w);
+            if ((ris*w) == 0) { q = 0; break;}
+            q = (ris*ris) / (pis*w);
             for (int i = 0; i < n; i++) {
                 h[i] = ui[i] - q * w[i];
                 w[i] = ui[i] + h[i];

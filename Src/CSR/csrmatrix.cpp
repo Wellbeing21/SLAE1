@@ -9,7 +9,7 @@ double mistakemod(const std::vector<double>&x1,const std::vector<double>&x2) {
     for (int i = 0; i < x1.size(); i++) {
         a += (x1[i] - x2[i]) * (x1[i] - x2[i]);
     }
-      a = sqrt(a);
+      a = std::sqrt(a);
     return a;
 }
 
@@ -18,19 +18,44 @@ double vecmod(std::vector<double>&x1) {
     for (int i = 0; i < x1.size(); i++) {
         a += (x1[i]) * (x1[i]);
     }
-    a = sqrt(a);
+    a = std::sqrt(a);
     return a;
 }
 
-double scalarmult(std::vector<double>&x1, std::vector<double>&x2) {
-    double sc =0;
-    for (int i = 0; i < x1.size(); i++) {
-        sc += x1[i] * x2[i];
+double operator* (const std::vector<double> &a, const std::vector<double> &b) {
+    double sum = 0;
+    for (int i = 0; i < a.size(); i++) {
+        sum += a[i] * b[i];
     }
-    return sc;
+    return sum;
 }
 
-double CSR_space::Csr_matrix::operator()(std::size_t i, std::size_t j) {
+std::vector<double> operator* (const double &a, const std::vector<double> &b) {
+    std::vector<double> res(b.size());
+    for (int i = 0; i < b.size(); i++) {
+        res[i] = a * b[i];
+    }
+    return res;
+}
+
+std::vector<double> operator+ (const std::vector<double> &a, const std::vector<double> &b) {
+    std::vector<double> res(b.size());
+    for (int i = 0; i < b.size(); i++) {
+        res[i] = a[i] + b[i];
+    }
+    return res;
+}
+
+std::vector<double> operator- (const std::vector<double> &a, const std::vector<double> &b) {
+    std::vector<double> res(b.size());
+    for (int i = 0; i < b.size(); i++) {
+        res[i] = a[i] - b[i];
+    }
+    return res;
+}
+
+
+double CSR_space::Csr_matrix::operator()(std::size_t i, std::size_t j) const{
     int c = 0;
     for (std::size_t it = sup_row[i]; it < sup_row[i+1]; it++) {
         if (col_ind[it] == j) {
@@ -42,7 +67,7 @@ double CSR_space::Csr_matrix::operator()(std::size_t i, std::size_t j) {
     }
 }
 
-std::vector<double> CSR_space::Csr_matrix::operator*( const std::vector<double> fre) {
+std::vector<double> CSR_space::Csr_matrix::operator*( const std::vector<double> &fre) const{
     std::vector<double> a;
     std::size_t n = sup_row.size() - 1;
     a.resize(n);
@@ -79,7 +104,8 @@ void CSR_space::Csr_matrix::Wolout(Csr_matrix &A){
     std::cout << "}";
 }
 
-std::vector<double> CSR_space::Csr_matrix::ReshYak(Csr_matrix &A,  std::vector<double> x0, const std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshYak(const Csr_matrix &A,const  std::vector<double> &x01, const std::vector<double> &b,const  double &e) {
+    std::vector<double> x0 = x01;
     int n = (A.sup_row.size() - 1);
     std::vector<double> ans;
     double r = 1;
@@ -106,12 +132,13 @@ std::vector<double> CSR_space::Csr_matrix::ReshYak(Csr_matrix &A,  std::vector<d
 
 }
 
-std::vector<double> CSR_space::Csr_matrix::ReshIT(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double t, double e) {
-    int n = x0.size();
+std::vector<double> CSR_space::Csr_matrix::ReshIT(const Csr_matrix &A, const std::vector<double> &x01, const std::vector<double> &b,const double &t, const double &e) {
+    int n = x01.size();
+    std::vector<double> x0 = x01;
     int iter = 0;
     std::vector<double> mul(n), bf(n);
     double r = 1;
-    while (not (fabs(r) < e)) {
+    while (std::fabs(r) > e) {
         mul = A * x0;
         iter++;
         for (int i = 0; i < n; i++) {
@@ -128,9 +155,10 @@ std::vector<double> CSR_space::Csr_matrix::ReshIT(Csr_matrix &A, std::vector<dou
 
 //same RESH with simple iterations, but with smart polinoms
 //n = degree of our polynom
-std::vector<double> CSR_space::Csr_matrix::ReshITS(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, int rd, double e, double lam1, double lam2) {
+std::vector<double> CSR_space::Csr_matrix::ReshITS(const Csr_matrix &A,const std::vector<double> &x01,const  std::vector<double> &b, const int &rd,const double &e,const double &lam1,const double &lam2) {
     int n = A.sup_row.size() - 1;
-    int num = pow(2, rd);
+    std::vector<double> x0 = x01;
+    int num = std::pow(2, rd);
     std::vector<double> mul, bf, t(num), ord(num), x(num);
     //first, we need to make our t-vector with cycle with num roots
     double sina = sin(4 * atan(1) / num), cosa = cos(4 * atan(1) / num), sinb = sin(4 * atan(1) / (2 * num));
@@ -150,14 +178,14 @@ std::vector<double> CSR_space::Csr_matrix::ReshITS(Csr_matrix &A, std::vector<do
         j = j/2;
         if (j < 1) {break;}
         for (int jt = j; jt < num; jt = jt + 2*j) {
-            ord[jt] = pow(2,i+1) - ord[jt - j] - 1;
+            ord[jt] = std::pow(2,i+1) - ord[jt - j] - 1;
         }
     }
     //and we found our order so, let's start iterations
     double r = 1;
     int por = 0;
     int iter = 0;
-    while (not (fabs(r) < e)) {
+    while (std::fabs(r) > e) {
         iter++;
         mul = A*x0;
         for (int i = 0; i < n; i++) {
@@ -180,7 +208,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshITS(Csr_matrix &A, std::vector<do
 
 
 ///i changed Zeidel here
-std::vector<double> CSR_space::Csr_matrix::ReshGZ(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshGZ(const Csr_matrix &A, const std::vector<double> &x01,const std::vector<double> &b,const  double &e) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() -1;
     double r = 1;
     std::vector<double> bf;
@@ -204,7 +233,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshGZ(Csr_matrix &A, std::vector<dou
     return x0;
 }
 //Gauss zeydel symmetrical double time (x_{i+05}, x_{i+1}}
-std::vector<double> CSR_space::Csr_matrix::ReshGZS(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshGZS(const Csr_matrix &A,const std::vector<double> &x01, const std::vector<double> &b,const double &e) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() -1;
     double r = 1;
     std::vector<double> bf;
@@ -238,7 +268,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshGZS(Csr_matrix &A, std::vector<do
     return x0;
 }
 ///sor method upper relaxation
-std::vector<double> CSR_space::Csr_matrix::ReshSOR(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e,double w) {
+std::vector<double> CSR_space::Csr_matrix::ReshSOR(const Csr_matrix &A, const std::vector<double> &x01,const std::vector<double> &b,const double &e,const double &w) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() -1;
     double r = 1;
     std::vector<double> bf;
@@ -266,7 +297,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshSOR(Csr_matrix &A, std::vector<do
     return x0;
 }
 ///plus one
-std::vector<double> CSR_space::Csr_matrix::ReshSSOR(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e,double w) {
+std::vector<double> CSR_space::Csr_matrix::ReshSSOR(const Csr_matrix &A, const std::vector<double> &x01, const std::vector<double> &b,const  double &e, const double &w) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() -1;
     double r = 1;
     std::vector<double> bf;
@@ -316,7 +348,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshSSOR(Csr_matrix &A, std::vector<d
 }
 
 ///And now chebushevskoe for SSOR
-std::vector<double> CSR_space::Csr_matrix::ReshSSORCHEB(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e,double p, double w) {
+std::vector<double> CSR_space::Csr_matrix::ReshSSORCHEB(const Csr_matrix &A,const std::vector<double> &x01, const std::vector<double> &b, const double &e, const double &p, const double &w) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() -1;
     double r = 1;
     std::vector<double> bf, mu(3), ypred = x0;
@@ -376,7 +409,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshSSORCHEB(Csr_matrix &A, std::vect
     return x0;
 }
 
-double CSR_space::Csr_matrix::eigenvalue(Csr_matrix &M, std::vector<double> &x0, double e) {
+double CSR_space::Csr_matrix::eigenvalue(const Csr_matrix &M, const std::vector<double> &x01,const double &e) {
+    std::vector<double> x0 = x01;
     for (int i = 0; i < x0.size(); i++) {
         x0[i] = x0[i] / vecmod(x0);
     }
@@ -394,19 +428,20 @@ double CSR_space::Csr_matrix::eigenvalue(Csr_matrix &M, std::vector<double> &x0,
     return vecmod(xpred);
 }
 
-std::vector<double> CSR_space::Csr_matrix::ReshRapidGradient(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshRapidGradient(const Csr_matrix &A,const std::vector<double> &x01,const std::vector<double> &b, const double &e) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() - 1;
     int iter = 0;
     std::vector<double> mul, bf, ri(n);
     double r = 1, a;
-    while (not (fabs(r) < e)) {
+    while (std::fabs(r) < e) {
         mul = A * x0;
         for (int i = 0; i < n; i++ ) {
             ri[i] = mul[i] - b[i];  //finded nevyazku
         }
         std::vector<double> znam;
         znam = A*ri;
-        a = scalarmult(ri,ri) / scalarmult(ri, znam);
+        a = (ri*ri) / (ri*znam);
         //got alpha, now do iterations
         iter++;
         for (int i = 0; i < n; i++) {
@@ -418,7 +453,8 @@ std::vector<double> CSR_space::Csr_matrix::ReshRapidGradient(Csr_matrix &A, std:
     return x0;
 
 }
-double CSR_space::Csr_matrix::Amult(Csr_matrix &A, std::vector<double>&x2) {
+double CSR_space::Csr_matrix::Amult(const Csr_matrix &A,const std::vector<double> &x2) {
+    std::vector<double> x0 = x2;
     double sc =0;
     std::vector x11 = x2;
     std::vector x22 = x2;
@@ -429,19 +465,20 @@ double CSR_space::Csr_matrix::Amult(Csr_matrix &A, std::vector<double>&x2) {
     return sc;
 }
 
-std::vector<double> CSR_space::Csr_matrix::ReshNesterov(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshNesterov(const Csr_matrix &A, const std::vector<double> &x01, const std::vector<double> &b,const double &e) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() - 1;
     int iter = 0;
     std::vector<double> mul, bf, ri(n), xpr = x0 , xnow(n);
     double r = 1, a;
-    while (not (fabs(r) < e)) {
+    while ( std::fabs(r) > e) {
         mul = A * x0;
         for (int i = 0; i < n; i++ ) {
             ri[i] = mul[i] - b[i];  //finded nevyazku
         }
         std::vector<double> znam;
         znam = A*ri;
-        a = scalarmult(ri,ri) / scalarmult(ri, znam);
+        a = (ri*ri) / (ri*znam);
         //got alpha, now do iterations
         iter++;
         for (int i = 0; i < n; i++) {
@@ -460,43 +497,34 @@ std::vector<double> CSR_space::Csr_matrix::ReshNesterov(Csr_matrix &A, std::vect
     return x0;
 
 }
-std::vector<double> CSR_space::Csr_matrix::ReshConjugateGradient(Csr_matrix &A, std::vector<double> x0, std::vector<double> b, double e) {
+std::vector<double> CSR_space::Csr_matrix::ReshConjugateGradient(const Csr_matrix &A,const std::vector<double> &x01, const std::vector<double> &b,const double &e) {
+    std::vector<double> x0 = x01;
     int n = A.sup_row.size() - 1;
     int iter = 0;
     std::vector<double> Ax, di(n), di1(n), ri(n), ri1(n);
     double r = 1, alpha;
     //need to do 1-st iteration
     Ax = A*x0;
-    for (int i = 0; i < n; i++ ) {
-        ri1[i] = Ax[i] - b[i];  //finded nevyazku(r_{i+1})
-    }
+    ri1 = Ax - b;
     di1 = ri1;
-    alpha = scalarmult(di1,ri1) / Amult(A,di1);
+    alpha = (di1*ri1) / Amult(A,di1);
     //got alpha, now do iteration
     iter++;
-    for (int i = 0; i < n; i++) {
-        x0[i] = x0[i] - alpha * di1[i];
-    }
+    x0 = x0 - (alpha * di1);
     ri = ri1;
     di = di1;
     r = vecmod(ri);
     while (true) {
         Ax = A * x0;
-        for (int i = 0; i < n; i++ ) {
-            ri1[i] = Ax[i] - b[i];  //finded nevyazku(r_{i+1})
-        }
+        ri1 = Ax - b;  //finded nevyazku(r_{i+1})
         if (vecmod(ri1) < e) {break;}
-        double beta = scalarmult(ri1, ri1) / scalarmult(di,ri);
-        for (int i = 0; i < n; i++) {
-            di1[i] = ri1[i] + beta * di[i];
-        }
+        double beta = (ri1*ri1) / (di*ri);
+        di1 = ri1 + (beta * di);
         //finded d_{i+1}
-        alpha = scalarmult(di1,ri1) / Amult(A,di1);
+        alpha = (di1*ri1) / Amult(A,di1);
         //got alpha, now do iteration
         iter++;
-        for (int i = 0; i < n; i++) {
-            x0[i] = x0[i] - alpha * di1[i];
-        }
+            x0 = x0 - (alpha * di1);
         ri = ri1;
         di = di1;
     }
