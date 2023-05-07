@@ -101,7 +101,7 @@ void CSR_space::Csr_matrix::Wolout(Csr_matrix &A){
         if (i != n - 1) {std::cout << "}, ";}
         else {std::cout << "}";}
     }
-    std::cout << "}";
+    std::cout << "}\n";
 }
 
 std::vector<double> CSR_space::Csr_matrix::ReshYak(const Csr_matrix &A,const  std::vector<double> &x01, const std::vector<double> &b,const  double &e) {
@@ -533,6 +533,211 @@ std::vector<double> CSR_space::Csr_matrix::ReshConjugateGradient(const Csr_matri
 
 }
 
+
+void CSR_space::Csr_matrix::LU(const Csr_matrix &A) {
+    int n = A.sup_row.size()-1;
+    std::vector<double> l(n * n);
+    std::vector<double> u(n * n);
+    for (int i = 0; i < n; i ++) {
+        l[i * n + i] = 1;
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i <= j) {
+                u[i * n + j] = A(i,j);
+                for (int k = 0; k < i; k++) {
+                    u[i * n + j] -= l[i * n + k] * u[k * n + j];
+                }
+            }
+            else {
+                l[i * n + j] = A(i,j);
+                for (int k = 0; k < j; k++) {
+                    l[i * n + j] -= l[i * n + k] * u[k * n + j];
+                }
+                l[i * n + j] = l[i * n + j]/u[j * n + j];
+            }
+        }
+
+    }
+
+    Csr_matrix L(l);
+    Csr_matrix U(u);
+    L.Wolout(L);
+    U.Wolout(U);
+}
+
+void CSR_space::Csr_matrix::LU0(const Csr_matrix &A) {
+    int n = A.sup_row.size()-1;
+    std::vector<double> l(n * n);
+    std::vector<double> u(n * n);
+    std::vector<double> lvl(n * n);
+    for (int i = 0; i < n; i ++) {
+        l[i * n + i] = 1;
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (A(i,j) != 0) {
+                lvl[i * n + j] = 1;
+            }
+        }
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i <= j) {
+                u[i * n + j] = A(i,j);
+                for (int k = 0; k < i; k++) {
+                    u[i * n + j] -= l[i * n + k] * u[k * n + j];
+                }
+            }
+            else {
+                l[i * n + j] = A(i,j);
+                for (int k = 0; k < j; k++) {
+                    l[i * n + j] -= l[i * n + k] * u[k * n + j];
+                }
+                l[i * n + j] = l[i * n + j]/u[j * n + j];
+            }
+        }
+
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (lvl[i * n + j] == 0) {
+                u[i * n + j] = 0;
+                l[i * n + j] = 0;
+            }
+        }
+    }
+
+
+    Csr_matrix L(l);
+    Csr_matrix U(u);
+    L.Wolout(L);
+    U.Wolout(U);
+}
+
+CSR_space::Csr_matrix CSR_space::Csr_matrix::CHOL0(const Csr_matrix &A) {
+    int n = A.sup_row.size()-1;
+    std::vector<double> l(n * n);
+    std::vector<double> u(n * n);
+    std::vector<double> lvl(n * n);
+
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (A(i,j) != 0) {
+                lvl[i * n + j] = 1;
+            }
+        }
+    }
+//////////nice
+
+
+    for (int i = 0; i <  n; i++) {
+        for (int j = 0; j <= i; j++) {
+            double sum = 0;
+            for (int k = 0; k < j; k++)
+                sum += l[i * n + k] * l[j * n + k];
+
+            if (i == j)
+                l[i * n + j] = sqrt(A(i,i) - sum);
+            else
+                l[i * n + j] = (A(i,j) - sum) / l[j * n + j];
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            u[i * n + j] = l[j * n + i];
+        }
+    }
+
+    Csr_matrix L(l);
+    Csr_matrix U(u);
+    L.Wolout(L);
+    U.Wolout(U);
+
+
+    return L;
+}
+
+std::vector<double> CSR_space::Csr_matrix::SolverGaussReversed_forDownTriang(const Csr_matrix &A, const std::vector<double> &b) {
+    int n = b.size();
+    std::vector<double> x(n);
+    for (int i = 0; i < n; i++) {
+        double sum = 0;
+        for (int j = 0; j < i; j++) {
+            sum += A(i,j) * x[j];
+        }
+        x[i] = (b[i] - sum) / A(i,i);
+    }
+    return x;
+}///working
+
+
+std::vector<double> CSR_space::Csr_matrix::ReshConjugateGradientObusl(const Csr_matrix &A,const std::vector<double> &x01, const std::vector<double> &b,const double &e) {
+    std::vector<double> x0 = x01;
+    int n = A.sup_row.size() - 1;
+    int iter = 0;
+
+    double res = 1, alpha,beta;
+    //need to do 1-st iteration
+    std::vector<double> w0(n),r0(n), d0(n), rprev(n), wprev(n),dprev(n);
+    r0 = A*x0 - b;
+    Csr_matrix L = CHOL0(A);
+    w0 = SolverGaussReversed_forDownTriang(L,r0);
+    d0 = w0;
+
+    while (res > e) {
+        alpha = (r0 * w0) / Amult(A,d0);
+        x0 = x0 - alpha * d0;
+        rprev = r0;
+        r0 = A* x0 - b;
+        wprev = w0;
+        w0 = SolverGaussReversed_forDownTriang(L,r0);
+        res = vecmod(r0);
+        beta = (r0 * w0) / (rprev * wprev);
+        dprev = d0;
+        d0 = w0 + beta * dprev;
+
+        iter++;
+    }
+    std::cout << iter << "- number of iterations\n" ;
+    return x0;
+}
+
+
+
+
+CSR_space::Csr_matrix::Csr_matrix(std::vector<double> vec1) {
+    std::vector<DOK> vec;
+    int n = std::sqrt(vec1.size());
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            vec.push_back({ i , j, vec1[i * n + j]});
+
+        }
+    }
+
+
+    data.resize(vec.size());
+    sup_row.resize(vec[vec.size() - 1].i + 2);
+    col_ind.resize(vec.size());
+    sup_row[0] = 0;
+
+    std::size_t j = 1;
+    for (std::size_t i = 0; i < vec.size(); i++) {
+        data[i] = vec[i].val;
+        col_ind[i] = vec[i].j;
+
+        if (i > 0 && vec[i].i - vec[i - 1].i != 0) {
+            for (int it = 0; it < vec[i].i - vec[i - 1].i; it++) {
+                sup_row[j] = i;
+                j++;
+            }
+        }
+    }
+    sup_row[j] = vec.size();
+};
 CSR_space::Csr_matrix::Csr_matrix(std::vector<DOK> vec) {
     data.resize(vec.size());
     sup_row.resize(vec[vec.size() - 1].i + 2);

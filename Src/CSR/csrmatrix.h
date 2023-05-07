@@ -16,6 +16,10 @@ double scalarmult(std::vector<double>&x1, std::vector<double>&x2);
 namespace CSR_space {
     class Csr_matrix {
     private:
+
+
+        Csr_matrix(int n);
+
         std::vector<double> data;
         std::vector<std::size_t> col_ind;
         std::vector<std::size_t> sup_row;
@@ -43,7 +47,18 @@ namespace CSR_space {
         double Amult(const Csr_matrix &A,const std::vector<double> &x2);
         std::vector<double> ReshConjugateGradient(const Csr_matrix &A,const std::vector<double> &x01, const std::vector<double> &b,const double &e);
         Csr_matrix(std::vector<DOK> vec);
+        Csr_matrix(std::vector<double> vec);
 
+        void LU0(const Csr_matrix &A);
+        void LU(const Csr_matrix &A);
+
+        Csr_matrix CHOL0(const Csr_matrix &A);
+
+        std::vector<double>
+        ReshConjugateGradientObusl(const Csr_matrix &A, const std::vector<double> &x01, const std::vector<double> &b,
+                                   const double &e);
+
+        std::vector<double> SolverGaussReversed_forDownTriang(const Csr_matrix &A, const std::vector<double> &b);
     };
 
 };

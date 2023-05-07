@@ -331,4 +331,78 @@ TEST (KR2,2) {
 
 
 }
+TEST (test_LU, 1) {
+    std::vector<double> a = {5,1,0,0,1,  0,5,1,0,1, 1,1,5,1,0,  0,0,1,5,0,   0,1,1,1,5};
+    Csr_matrix M(a);
+    M.out(M);
+    M.LU(M);
+    std::cout << "That's the LU-decomposition\n";
+    M.LU0(M);
+    std::cout << "That's the LU-decomposition(zero)\n";
+    std::cout << "You can add it to Wolfram Alpha just ctrl + c ...";
+}
 
+TEST (test_CHOL, 1) {
+    std::vector<double> a = {6,1,0,0,1,  1,5,1,0,1, 0,1,5,1,0,  0,0,1,3,0,   1,1,0,0,5};
+    Csr_matrix M(a);
+    M.Wolout(M);
+    M.out(M);
+    M.CHOL0(M);
+}
+TEST (test_CHOL, 2) {
+    std::vector<double> a = {5,0,1,  0,4,1,  1,1,7};
+    Csr_matrix M(a);
+    M.Wolout(M);
+    M.out(M);
+    Csr_matrix A = M.CHOL0(M);
+    std::cout << "You can check it in Wolfram\n";
+}
+
+TEST (Gauss_triag, 1) {
+    std::vector<double> a = {5,0,0,  3,4,0,  1,1,7};
+    Csr_matrix M(a);
+    M.Wolout(M);
+    std::vector<double> b = {1,1,1};
+    std::vector<double> x(3);
+    M.out(M);
+    x = M.SolverGaussReversed_forDownTriang(M, b);
+    for (int i = 0; i < 3; i++){
+        std::cout << x[i] <<"\n";
+    }
+
+}
+
+
+TEST (CG_obusl, 1) {
+    double e = 0.003;
+    int n = 5;
+    std::vector<double> a = {6,1,0,0,1,  1,5,1,0,1, 0,1,5,1,0,  0,0,1,3,0,   1,1,0,0,5};
+    Csr_matrix M(a);
+
+    std::vector<double> b = {1,1,1,1,1}, x0 = {1,1,1,1,1};
+    M.Wolout(M);
+    M.out(M);
+    std::vector<double> x(n);
+    x = M.ReshConjugateGradientObusl(M,x0,b,e);
+    for (int i = 0; i < n; i++){
+        std::cout << x[i] << "\n";
+    }
+
+}
+
+TEST (CG_obusl, 2) {
+    double e = 0.0001;
+    int n = 3;
+    std::vector<double> a = {6,1,0,  1,5,1, 0,1,5};
+    Csr_matrix M(a);
+
+    std::vector<double> b = {1,1,1}, x0 = {1,1,1};
+    M.Wolout(M);
+    M.out(M);
+    std::vector<double> x(n);
+    x = M.ReshConjugateGradientObusl(M,x0,b,e);
+    for (int i = 0; i < n; i++){
+        std::cout << x[i] << "\n";
+    }
+
+}
